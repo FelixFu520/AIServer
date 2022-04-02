@@ -17,7 +17,6 @@ import json
 from loguru import logger
 
 __all__ = ['trainServer']
-SEPARATOR = "<SEPARATOR>"
 
 
 class trainServer(socketio.Namespace):
@@ -53,6 +52,7 @@ class trainServer(socketio.Namespace):
         return allCkptPath
 
     def on_uploadFile(self, sid, data):
+        SEPARATOR = "<SEPARATOR>"
         #  {'filename': f"{filenameBase}{SEPARATOR}{counter}.part", 'data_bytes': bytes_read}
         SN = data['SN']
         taskType = data['taskType']
@@ -70,6 +70,7 @@ class trainServer(socketio.Namespace):
         return filename_to_return
 
     def on_mergePart(self, sid, data):
+        SEPARATOR = "<SEPARATOR>"
         #  {'filename': f"{filenameBase}{SEPARATOR}{counter}.part", 'data_bytes': bytes_read}
         SN = data['SN']
         taskType = data['taskType']
@@ -111,6 +112,7 @@ class trainServer(socketio.Namespace):
 
         json_str = json.dumps(configDict, indent=4)
         logPath = os.path.join("/ai/data/AILogs", sn, taskType, modelName, projectName, configName).replace('\\','/')
+        os.makedirs(logPath, exist_ok=True)
         jsonPath = os.path.join(logPath, 'config.json')
         with open(jsonPath, 'w') as json_file:
             json_file.write(json_str)
