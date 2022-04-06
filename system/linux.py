@@ -16,19 +16,21 @@ __all__ = ['linuxServer']
 
 
 class linuxServer(socketio.Namespace):
-    def on_connect(self, sid, environ):
-        logger.info("sid:{} connected".format(sid))
-        # logger.info("{} environ:".format(environ))
-
-    def on_disconnect(self, sid):
-        logger.info("sid:{} disconnect".format(sid))
-        self.emit("message_disconnect", {'status': 0, 'data': None})
-
     def on_addServer(self, sid):
+        """
+        添加服务器，用于测试是否可以连接
+        :param sid:
+        :return:
+        """
         logger.info("sid:{} addServer".format(sid))
-        self.emit("message_addServer", {'status': 0, 'data': None})
+        return True
 
     def on_smi(self, sid):
+        """
+        获取nvidia-smi的结果
+        :param sid:
+        :return:
+        """
         logger.info("sid:{} exec command(nvidia-smi)".format(sid))
         # 获取nvidia-smi命令的结果，并存储到result中，返回给message_smi方法
         res = subprocess.Popen("nvidia-smi", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -36,9 +38,15 @@ class linuxServer(socketio.Namespace):
         for line in res.stdout.readlines():
             line = bytes.decode(line)
             result.append(line.strip())
-        self.emit('message_smi', {'status': 0, 'data': pickle.dumps(result)})
+        # self.emit('message_smi', {'status': 0, 'data': pickle.dumps(result)})
+        return result
 
     def on_top(self, sid):
+        """
+        获取top的结果
+        :param sid:
+        :return:
+        """
         logger.info("sid:{} exec command(top)".format(sid))
         # 获取nvidia-smi命令的结果，并存储到result中，返回给message_smi方法
         res = subprocess.Popen("top -b -n 1", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -46,7 +54,8 @@ class linuxServer(socketio.Namespace):
         for line in res.stdout.readlines():
             line = bytes.decode(line)
             result.append(line.strip())
-        self.emit('message_top', {'status': 0, 'data': pickle.dumps(result)})
+        # self.emit('message_top', {'status': 0, 'data': pickle.dumps(result)})
+        return result
 
     def on_availableGpu(self, sid):
         logger.info("linuxServer----sid:{} exec command(nvgpu.available_gpus())".format(sid))
