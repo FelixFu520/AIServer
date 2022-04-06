@@ -6,8 +6,8 @@ import eventlet
 import socketio
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # 添加当前目录
-from system import linuxServer
-from dtede import trainServer
+from system import *
+from dtede import *
 
 
 __all__ = ['AIServer']
@@ -48,18 +48,18 @@ def AIServer(port=4444):
     sio = socketio.Server()
     # 1. 监听linuxServer
     sio.register_namespace(linuxServer('/linuxServer'))
-    # # 2. 监听Dataset
-    # sio.register_namespace(linuxServer('/data'))
+    # 2. 监听Dataset
+    sio.register_namespace(dataServer('/dataServer'))
     # 3. 监听train
     sio.register_namespace(trainServer('/trainServer'))
     # # 4. 监听eval
-    # sio.register_namespace(linuxServer('/eval'))
+    # sio.register_namespace(evalServer('/eval'))
     # # 5. 监听demo
-    # sio.register_namespace(linuxServer('/demo'))
+    # sio.register_namespace(demoServer('/demo'))
     # # 6. 监听onnx
-    # sio.register_namespace(linuxServer('/onnx'))
+    # sio.register_namespace(onnxServer('/onnx'))
     # # 7. 监听exportc
-    # sio.register_namespace(linuxServer('/exportc'))
+    # sio.register_namespace(exportcServer('/exportc'))
 
     app = socketio.WSGIApp(sio, static_files={
         '/': {'content_type': 'text/html', 'filename': 'index.html'}
