@@ -125,21 +125,26 @@ class trainServer(socketio.Namespace):
         with open(jsonPath, 'w') as json_file:
             json_file.write(json_str)
 
-        # print(f"TWO:{gpu_str} nohup /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} &")
+        # 这种写法有时会卡死
+        # logger.info(f"ONE:{gpu_str} /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}")
         # res = subprocess.Popen(
-        #     f"{gpu_str} nohup /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} &",
+        #     f"{gpu_str} NCCL_DEBUG=INFO /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}",
         #     shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
-        logger.info(f"ONE:{gpu_str} /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}")
-        res = subprocess.Popen(
-            f"{gpu_str} NCCL_DEBUG=INFO /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}",
-            shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        # train_log = os.path.join(logPath, "train_log.txt")
-        # print(f"{gpu_str} NCCL_DEBUG=INFO nohup python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} {train_log} 2>&1 &")
+        # 后台执行，同时num_worker=0, 不要出现tqdm等多线程，多进程的库
+        # train_log = os.path.join(logPath, "log.txt")
+        # logger.info(f"TWO:{gpu_str} NCCL_DEBUG=INFO nohup /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}  > {train_log} 2>&1 &")
         # res = subprocess.Popen(
-        #     f"{gpu_str} NCCL_DEBUG=INFO nohup python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} {train_log} 2>&1 &",
+        #     f"{gpu_str} nohup NCCL_DEBUG=INFO /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}  > {train_log} 2>&1 &",
         #     shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        return res.pid
+        # return res.pid
+
+        # 后台执行，同时num_worker=0, 不要出现tqdm等多线程，多进程的库
+        train_log = os.path.join(logPath, "log.txt")
+        logger.info(f"THREE:{gpu_str} NCCL_DEBUG=INFO nohup /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}  > {train_log} 2>&1 &")
+        res = os.system(
+            f"{gpu_str} NCCL_DEBUG=INFO nohup /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}  > {train_log} 2>&1 &")
+        return res
 
     def on_getLog(self, sid, data):
         logger.info("trainServer----sid:{} getLog".format(sid))
