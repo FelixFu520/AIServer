@@ -20,14 +20,6 @@ __all__ = ['trainServer']
 
 
 class trainServer(socketio.Namespace):
-    def on_connect(self, sid, environ):
-        logger.info("trainServer----sid:{} connected".format(sid))
-        # logger.info("{} environ:".format(environ))
-
-    def on_disconnect(self, sid):
-        logger.info("trainServer----sid:{} disconnect".format(sid))
-        # self.emit("message_disconnect", {'status': 0, 'data': None})
-
     def on_allDataset(self, sid, data):
         """
         返回 /ai/data/AIDatasets/taskType/SN下的所有数据集列表
@@ -48,10 +40,18 @@ class trainServer(socketio.Namespace):
         projectName = data['projectName']
         configName = data['configName']
         ckptPath = os.path.join("/ai/data/AILogs", SN, taskType, modelName, projectName, configName)
-        allCkptPath = [folder for folder in os.listdir(ckptPath) if os.path.isdir(os.path.join(ckptPath, folder))]
+        if not os.path.exists(ckptPath):
+            return []
+        allCkptPath = [file_ for file_ in os.listdir(ckptPath) if file_ == "best_ckpt.pth"]
         return allCkptPath
 
     def on_uploadFile(self, sid, data):
+        """
+        已废弃
+        :param sid:
+        :param data:
+        :return:
+        """
         SEPARATOR = "<SEPARATOR>"
         #  {'filename': f"{filenameBase}{SEPARATOR}{counter}.part", 'data_bytes': bytes_read}
         SN = data['SN']
@@ -70,6 +70,12 @@ class trainServer(socketio.Namespace):
         return filename_to_return
 
     def on_mergePart(self, sid, data):
+        """
+        已废弃
+        :param sid:
+        :param data:
+        :return:
+        """
         SEPARATOR = "<SEPARATOR>"
         #  {'filename': f"{filenameBase}{SEPARATOR}{counter}.part", 'data_bytes': bytes_read}
         SN = data['SN']
@@ -109,6 +115,8 @@ class trainServer(socketio.Namespace):
         projectName = data['projectName']
         configName = data['configName']
         configDict = data['config']
+        gpu_str = data['gpu_str']
+        devices_num = data['devices_num']
 
         json_str = json.dumps(configDict, indent=4)
         logPath = os.path.join("/ai/data/AILogs", sn, taskType, modelName, projectName, configName).replace('\\','/')
@@ -116,5 +124,36 @@ class trainServer(socketio.Namespace):
         jsonPath = os.path.join(logPath, 'config.json')
         with open(jsonPath, 'w') as json_file:
             json_file.write(json_str)
-        res = subprocess.Popen(f"nohup python /ai/DAO/main.py -c {os.path.join(jsonPath)} &", shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        return res
+
+        # print(f"TWO:{gpu_str} nohup /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} &")
+        # res = subprocess.Popen(
+        #     f"{gpu_str} nohup /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} &",
+        #     shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+        logger.info(f"ONE:{gpu_str} /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}")
+        res = subprocess.Popen(
+            f"{gpu_str} NCCL_DEBUG=INFO /usr/bin/python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath}",
+            shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        # train_log = os.path.join(logPath, "train_log.txt")
+        # print(f"{gpu_str} NCCL_DEBUG=INFO nohup python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} {train_log} 2>&1 &")
+        # res = subprocess.Popen(
+        #     f"{gpu_str} NCCL_DEBUG=INFO nohup python /ai/AICore/main.py --num_machines 1 --machine_rank 0 --devices {devices_num} -c {jsonPath} {train_log} 2>&1 &",
+        #     shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        return res.pid
+
+    def on_getLog(self, sid, data):
+        logger.info("trainServer----sid:{} getLog".format(sid))
+        SN = data['sn']
+        taskType = data['taskType']
+        modelName = data['modelName']
+        projectName = data['projectName']
+        configName = data['configName']
+        allLog = data['allLog']
+        logPath = os.path.join("/ai/data/AILogs", SN, taskType, modelName, projectName, configName)
+        if not os.path.exists(logPath):
+            return []
+        if allLog:
+            alllogPath = [file_ for file_ in os.listdir(logPath)]
+        else:
+            alllogPath = [file_ for file_ in os.listdir(logPath) if not file_.endswith("pth")]
+        return alllogPath

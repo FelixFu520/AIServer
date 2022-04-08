@@ -21,20 +21,14 @@ __all__ = ['dataServer']
 
 
 class dataServer(socketio.Namespace):
-    def on_connect(self, sid, environ):
-        logger.info("dataServer----sid:{} connected".format(sid))
-        # logger.info("{} environ:".format(environ))
-
-    def on_disconnect(self, sid):
-        logger.info("dataServer----sid:{} disconnect".format(sid))
-        # self.emit("message_disconnect", {'status': 0, 'data': None})
-
     def on_allDatasetsByTaskTypeSN(self, sid, data):
         """
         返回 /ai/data/AIDatasets/taskType/SN下的所有数据集列表
         """
         logger.info("dataServer----sid:{} getDatasets".format(sid))
         dataset_path = os.path.join("/ai/data/AIDatasets", data['taskType'], data['SN'])
+        if not os.path.exists(dataset_path):
+            return []
         all_datasets = [folder for folder in os.listdir(dataset_path) if os.path.isdir(os.path.join(dataset_path, folder))]
         return all_datasets
 
@@ -65,7 +59,6 @@ class dataServer(socketio.Namespace):
         except Exception as e:
             logger.error("unzip error " + str(e))
             return False, str(e)
-
 
     def on_deleteDatasetServer(self, sid, data):
         """
